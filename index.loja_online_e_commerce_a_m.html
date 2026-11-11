@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050B14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Loja Online Oficial — E-commerce A&M</title>
+
+    <!-- Manifesto PWA dinâmico para instalar a Loja Online -->
+    <script>
+        (function() {
+            const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="115" fill="#050B14"/><path d="M112 160h288l-28 224H140L112 160z" fill="none" stroke="#F5A524" stroke-width="36" stroke-linejoin="round"/><path d="M192 160v-32a64 64 0 0 1 128 0v32" fill="none" stroke="#0062FF" stroke-width="36" stroke-linecap="round"/></svg>`;
+            const iconUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(svgIcon);
+            const manifest = {
+                name: "Loja Online A&M",
+                short_name: "Loja A&M",
+                description: "Catálogo Online Integrado ao Estoque e Mercado Pago",
+                start_url: window.location.href,
+                display: "standalone",
+                background_color: "#050B14",
+                theme_color: "#050B14",
+                icons: [
+                    { src: iconUrl, sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" },
+                    { src: iconUrl, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
+                ]
+            };
+            const link = document.createElement('link');
+            link.rel = 'manifest';
+            link.href = 'data:application/manifest+json;utf8,' + encodeURIComponent(JSON.stringify(manifest));
+            document.head.appendChild(link);
+        })();
+    </script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- SDK Oficial do Mercado Pago -->
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'app-bg': '#050B14',
+                        'panel-bg': '#0A1222',
+                        'panel-border': '#1A233A',
+                        'primary-blue': '#0062FF',
+                        'gold-accent': '#F5A524',
+                        'text-muted': '#64748B',
+                        'text-light': '#F8FAFC',
+                        'mp-blue': '#009EE3'
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        body {
+            background-color: #050B14;
+            color: #F8FAFC;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050B14; }
+        ::-webkit-scrollbar-thumb { background: #1A233A; border-radius: 4px; }
+
+        .glass-panel {
+            background-color: #0A1222;
+            border: 1px solid #1A233A;
+            border-radius: 16px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .input-dark {
+            background-color: #050B14;
+            border: 1px solid #1A233A;
+            color: #F8FAFC;
+            transition: all 0.2s;
+        }
+        .input-dark:focus {
+            border-color: #0062FF;
+            box-shadow: 0 0 0 2px rgba(0, 98, 255, 0.2);
+            outline: none;
+        }
+        .fade-in { animation: fadeIn 0.25s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; max-width: calc(100vw - 40px); }
+        .toast { background: #0A1222; border: 1px solid #1A233A; color: white; padding: 12px 16px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.75); display: flex; align-items: center; gap: 12px; min-width: 260px; animation: fadeIn 0.25s forwards; }
+        .toast.success { border-left: 4px solid #10B981; }
+        .toast.error { border-left: 4px solid #EF4444; }
+        .toast.info { border-left: 4px solid #0062FF; }
+
+        /* Proteção contra seleção e cópia de código */
+        body, div, span, p, h1, h2, h3, h4, button, nav, header {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+        }
+        input, textarea, select {
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            user-select: text !important;
+        }
+    </style>
+
+    <!-- Blindagem Anti-Inspeção e Anti-DevTools -->
+    <script>
+        (function() {
+            'use strict';
+            window.addEventListener('DOMContentLoaded', () => {
+                window.addEventListener('contextmenu', e => { e.preventDefault(); e.stopPropagation(); return false; }, true);
+                window.addEventListener('keydown', e => {
+                    const key = (e.key || '').toUpperCase();
+                    if (key === 'F12' || e.keyCode === 123 ||
+                        (e.ctrlKey && e.shiftKey && ['I', 'J', 'C', 'K', 'U'].includes(key)) ||
+                        (e.ctrlKey && ['U', 'S', 'P'].includes(key)) ||
+                        (e.metaKey && e.altKey && ['I', 'J', 'C', 'U'].includes(key))) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+                }, true);
+            });
+        })();
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- Conexão em Tempo Real com o Mesmo Firebase do Sistema Caixa A&M -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, collection, onSnapshot, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB69uvojT26bWaD6FVegRw41G0qZTH9hMg",
+            authDomain: "caixasistemaem.firebaseapp.com",
+            projectId: "caixasistemaem",
+            storageBucket: "caixasistemaem.firebasestorage.app",
+            messagingSenderId: "720297844412",
+            appId: "1:720297844412:web:21f74811c51a23931f7ab9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.firebaseDb = db;
+        window.fb = { doc, getDoc, collection, onSnapshot, addDoc, updateDoc };
+    </script>
+
+    <script type="text/babel" data-type="module">
+        const { useState, useEffect, useMemo, useCallback, createContext, useContext } = React;
+
+        const formatMoney = (val) => `R$ ${parseFloat(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const generateId = () => crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2);
+
+        // Contexto de Toasts
+        const ToastContext = createContext(null);
+        const ToastProvider = ({ children }) => {
+            const [toasts, setToasts] = useState([]);
+            const addToast = useCallback((message, type = 'info') => {
+                const id = generateId();
+                setToasts(prev => [...prev, { id, message, type }]);
+                setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+            }, []);
+            const toast = useMemo(() => ({
+                success: (m) => addToast(m, 'success'),
+                error: (m) => addToast(m, 'error'),
+                info: (m) => addToast(m, 'info')
+            }), [addToast]);
+
+            return (
+                <ToastContext.Provider value={toast}>
+                    {children}
+                    <div className="toast-container">
+                        {toasts.map(t => (
+                            <div key={t.id} className={`toast ${t.type}`}>
+                                <i className={`ph-fill ${t.type === 'success' ? 'ph-check-circle text-green-400' : t.type === 'error' ? 'ph-warning-circle text-red-400' : 'ph-info text-blue-400'} text-xl shrink-0`}></i>
+                                <span className="text-sm font-medium">{t.message}</span>
+                            </div>
+                        ))}
+                    </div>
+                </ToastContext.Provider>
+            );
+        };
+        const useToast = () => useContext(ToastContext);
+
+        // =====================================================================
+        // COMPONENTE PRINCIPAL DO E-COMMERCE CONECTADO AO CAIXA E MERCADO PAGO
+        // =====================================================================
+        const EcommerceStore = () => {
+            const toast = useToast();
+            const [loading, setLoading] = useState(true);
+            const [settings, setSettings] = useState({});
+            const [products, setProducts] = useState([]);
+            const [orders, setOrders] = useState([]);
+
+            // Filtros de Categoria e Busca
+            const [selectedCategory, setSelectedCategory] = useState('TODAS');
+            const [searchQuery, setSearchQuery] = useState('');
+
+            // Sacola de Compras (Persistente no navegador do cliente)
+            const [cart, setCart] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('am_ecommerce_cart');
+                    return saved ? JSON.parse(saved) : [];
+                } catch { return []; }
+            });
+            const [cartOpen, setCartOpen] = useState(false);
+            const [myOrdersOpen, setMyOrdersOpen] = useState(false);
+
+            // Checkout e Pagamento Mercado Pago
+            const [checkoutStep, setCheckoutStep] = useState('cart'); // 'cart' | 'customer' | 'mp_payment' | 'success'
+            const [deliveryType, setDeliveryType] = useState('delivery'); // 'delivery' | 'pickup'
+            const [mpPaymentMethod, setMpPaymentMethod] = useState('PIX'); // 'PIX' | 'Cartão de Crédito' | 'Checkout Pro MP'
+            const [processingOrder, setProcessingOrder] = useState(false);
+            const [mpPreferenceUrl, setMpPreferenceUrl] = useState('');
+            const [lastCreatedOrder, setLastCreatedOrder] = useState(null);
+
+            const [customer, setCustomer] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('am_ecommerce_customer');
+                    return saved ? JSON.parse(saved) : { name: '', phone: '', email: '', cep: '', street: '', number: '', neighborhood: '', city: '', state: '', complement: '' };
+                } catch {
+                    return { name: '', phone: '', email: '', cep: '', street: '', number: '', neighborhood: '', city: '', state: '', complement: '' };
+                }
+            });
+
+            // Meus pedidos salvos neste dispositivo
+            const [myOrderIds, setMyOrderIds] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('am_ecommerce_my_orders');
+                    return saved ? JSON.parse(saved) : [];
+                } catch { return []; }
+            });
+
+            useEffect(() => {
+                try { localStorage.setItem('am_ecommerce_cart', JSON.stringify(cart)); } catch {}
+            }, [cart]);
+
+            useEffect(() => {
+                try { localStorage.setItem('am_ecommerce_customer', JSON.stringify(customer)); } catch {}
+            }, [customer]);
+
+            // Sincronização em tempo real com o Firebase do Caixa Principal
+            useEffect(() => {
+                if (!window.fb || !window.firebaseDb) return;
+                const unsubSettings = window.fb.onSnapshot(window.fb.doc(window.firebaseDb, 'settings', 'geral'), (snap) => {
+                    if (snap.exists()) setSettings(snap.data());
+                    else setSettings({});
+                    setLoading(false);
+                });
+
+                const unsubProducts = window.fb.onSnapshot(window.fb.collection(window.firebaseDb, 'products'), (snap) => {
+                    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    setProducts(list);
+                });
+
+                const unsubOrders = window.fb.onSnapshot(window.fb.collection(window.firebaseDb, 'orders'), (snap) => {
+                    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    setOrders(list);
+                });
+
+                return () => {
+                    unsubSettings();
+                    unsubProducts();
+                    unsubOrders();
+                };
+            }, []);
+
+            // Inicializa o SDK do Mercado Pago sempre que a Public Key estiver configurada no Caixa
+            useEffect(() => {
+                if (settings?.mpPublicKey && window.MercadoPago) {
+                    try {
+                        window.mpInstance = new window.MercadoPago(settings.mpPublicKey.trim(), { locale: 'pt-BR' });
+                    } catch (e) {
+                        console.warn("Aviso ao iniciar SDK Mercado Pago:", e);
+                    }
+                }
+            }, [settings?.mpPublicKey]);
+
+            // Verifica se o Administrador/Programador liberou o E-commerce para operar
+            const isEcommerceLiberated = settings?.ecommerceEnabled === true && !(settings?.blockedTabs || []).includes('ecommerce');
+
+            // Produtos ativos do Caixa e Categorias separadas automaticamente
+            const activeProducts = useMemo(() => {
+                return products.filter(p => p.active !== false && !p.blocked);
+            }, [products]);
+
+            const categories = useMemo(() => {
+                const set = new Set();
+                activeProducts.forEach(p => set.add((p.category || 'Geral').trim()));
+                return ['TODAS', ...Array.from(set).sort()];
+            }, [activeProducts]);
+
+            const filteredProducts = useMemo(() => {
+                return activeProducts.filter(p => {
+                    const cat = (p.category || 'Geral').trim();
+                    const matchesCat = selectedCategory === 'TODAS' || cat === selectedCategory;
+                    const matchesSearch = (p.name + ' ' + cat + ' ' + (p.barcode || '')).toLowerCase().includes(searchQuery.toLowerCase());
+                    return matchesCat && matchesSearch;
+                });
+            }, [activeProducts, selectedCategory, searchQuery]);
+
+            const addToCart = (prod) => {
+                if (Number(prod.stock) <= 0) {
+                    toast.error("Este produto está esgotado no momento.");
+                    return;
+                }
+                setCart(prev => {
+                    const existing = prev.find(i => i.id === prod.id);
+                    if (existing && existing.qty >= Number(prod.stock)) {
+                        toast.error("Quantidade máxima disponível em estoque atingida.");
+                        return prev;
+                    }
+                    toast.success(`${prod.name} adicionado à sacola!`);
+                    if (existing) return prev.map(i => i.id === prod.id ? { ...i, qty: i.qty + 1 } : i);
+                    return [...prev, { id: prod.id, name: prod.name, price: Number(prod.price), cost: Number(prod.cost || 0), imageUrl: prod.imageUrl || '', stock: Number(prod.stock), qty: 1 }];
+                });
+            };
+
+            const updateCartQty = (id, delta) => {
+                setCart(prev => prev.flatMap(item => {
+                    if (item.id !== id) return [item];
+                    const latestProd = activeProducts.find(p => p.id === id);
+                    const maxStock = latestProd ? Number(latestProd.stock) : item.stock;
+                    const nextQty = item.qty + delta;
+                    if (nextQty <= 0) return [];
+                    if (nextQty > maxStock) {
+                        toast.error(`Apenas ${maxStock} un. disponíveis em estoque.`);
+                        return [item];
+                    }
+                    return [{ ...item, qty: nextQty }];
+                }));
+            };
+
+            const subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+            const shippingCost = deliveryType === 'pickup' ? 0 : parseFloat(settings?.shippingFee || 0);
+            const totalOrder = subtotal + shippingCost;
+
+            // Busca automática de CEP via ViaCEP
+            const lookupCEP = async (rawCep) => {
+                const clean = String(rawCep || '').replace(/\D/g, '');
+                if (clean.length !== 8) return;
+                try {
+                    const res = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
+                    const d = await res.json();
+                    if (!d.erro) {
+                        setCustomer(prev => ({
+                            ...prev,
+                            cep: clean,
+                            street: d.logradouro || prev.street,
+                            neighborhood: d.bairro || prev.neighborhood,
+                            city: d.localidade || prev.city,
+                            state: d.uf || prev.state
+                        }));
+                    }
+                } catch {}
+            };
+
+            // Avança dos dados do cliente para o Checkout Mercado Pago
+            const handleProceedToMercadoPago = async (e) => {
+                e.preventDefault();
+                if (!settings?.mpPublicKey || !settings?.mpAccessToken) {
+                    toast.error("O administrador ainda não configurou as 2 chaves do Mercado Pago no Caixa.");
+                    return;
+                }
+                if (cart.length === 0) return;
+
+                // Valida se todos os itens ainda possuem estoque no caixa
+                for (const item of cart) {
+                    const liveProd = activeProducts.find(p => p.id === item.id);
+                    if (!liveProd || Number(liveProd.stock) < item.qty) {
+                        toast.error(`O estoque de "${item.name}" mudou. Ajuste sua sacola.`);
+                        return;
+                    }
+                }
+
+                setProcessingOrder(true);
+                setMpPreferenceUrl('');
+
+                // Tenta criar uma Preferência real na API do Mercado Pago usando o Access Token configurado no Caixa
+                try {
+                    const prefBody = {
+                        items: [
+                            ...cart.map(i => ({
+                                id: String(i.id),
+                                title: i.name,
+                                quantity: Number(i.qty),
+                                currency_id: 'BRL',
+                                unit_price: Number(i.price)
+                            })),
+                            ...(shippingCost > 0 ? [{
+                                id: 'shipping',
+                                title: 'Frete / Entrega',
+                                quantity: 1,
+                                currency_id: 'BRL',
+                                unit_price: Number(shippingCost)
+                            }] : [])
+                        ],
+                        payer: {
+                            name: customer.name,
+                            email: customer.email || 'cliente@loja.com.br'
+                        },
+                        external_reference: `ECOM-${Date.now()}`
+                    };
+
+                    const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${settings.mpAccessToken.trim()}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(prefBody)
+                    });
+
+                    if (mpResponse.ok) {
+                        const mpData = await mpResponse.json();
+                        if (mpData.init_point) {
+                            setMpPreferenceUrl(mpData.init_point);
+                        }
+                    }
+                } catch (err) {
+                    console.warn("Checkout transparente local ativado:", err);
+                }
+
+                setProcessingOrder(false);
+                setCheckoutStep('mp_payment');
+            };
+
+            // Confirma o Pagamento via Mercado Pago, dá baixa no estoque do Caixa e registra como Venda Online!
+            const handleConfirmOnlineSale = async () => {
+                if (cart.length === 0 || processingOrder) return;
+                setProcessingOrder(true);
+
+                try {
+                    // Verifica novamente o estoque em tempo real antes de gravar
+                    for (const item of cart) {
+                        const liveProd = activeProducts.find(p => p.id === item.id);
+                        if (!liveProd || Number(liveProd.stock) < item.qty) {
+                            toast.error(`Desculpe, "${item.name}" acabou de esgotar.`);
+                            setProcessingOrder(false);
+                            return;
+                        }
+                    }
+
+                    const nowIso = new Date().toISOString();
+                    const fullAddress = deliveryType === 'pickup'
+                        ? 'Retirada na Loja'
+                        : `${customer.street}, ${customer.number} ${customer.complement ? '- ' + customer.complement : ''} - ${customer.neighborhood}, ${customer.city}/${customer.state} (CEP: ${customer.cep})`;
+
+                    // 1. Registra o Pedido na coleção `orders`
+                    const orderDoc = await window.fb.addDoc(window.fb.collection(window.firebaseDb, 'orders'), {
+                        createdAt: nowIso,
+                        date: nowIso,
+                        status: 'paid',
+                        fulfillmentStatus: 'preparing',
+                        paymentGateway: 'Mercado Pago',
+                        paymentMethod: mpPaymentMethod,
+                        mpPublicKeyUsed: (settings.mpPublicKey || '').slice(0, 14) + '***',
+                        deliveryType,
+                        customer: {
+                            name: customer.name,
+                            phone: customer.phone,
+                            email: customer.email,
+                            address: fullAddress
+                        },
+                        items: cart,
+                        subtotal,
+                        shipping: shippingCost,
+                        total: totalOrder
+                    });
+
+                    // 2. Registra na coleção `sales` do Caixa Principal como Venda Online
+                    await window.fb.addDoc(window.fb.collection(window.firebaseDb, 'sales'), {
+                        sessionId: 'ecommerce_online',
+                        source: 'ecommerce',
+                        orderId: orderDoc.id,
+                        operator: 'ecommerce@mercadopago',
+                        operatorName: `Venda Online (${customer.name.split(' ')[0]})`,
+                        items: cart,
+                        subtotal,
+                        discount: 0,
+                        cardSurcharge: 0,
+                        shipping: shippingCost,
+                        total: totalOrder,
+                        payment: `Mercado Pago (${mpPaymentMethod})`,
+                        received: totalOrder,
+                        date: nowIso
+                    });
+
+                    // 3. Dá baixa automática no estoque de cada produto na coleção `products`
+                    for (const item of cart) {
+                        const liveProd = activeProducts.find(p => p.id === item.id);
+                        if (liveProd) {
+                            const nextStock = Math.max(0, Number(liveProd.stock) - Number(item.qty));
+                            await window.fb.updateDoc(window.fb.doc(window.firebaseDb, 'products', item.id), {
+                                stock: nextStock
+                            });
+                        }
+                    }
+
+                    // 4. Registra no Histórico do Caixa Principal
+                    await window.fb.addDoc(window.fb.collection(window.firebaseDb, 'history'), {
+                        at: nowIso,
+                        userName: `Loja E-commerce (${customer.name})`,
+                        userEmail: customer.email || 'cliente@ecommerce',
+                        userRole: 'ecommerce',
+                        action: 'Venda Online (Mercado Pago)',
+                        details: `Pedido #${orderDoc.id.slice(0,6).toUpperCase()} - Total: ${formatMoney(totalOrder)} via Mercado Pago (${mpPaymentMethod})`
+                    });
+
+                    const updatedMyOrders = [orderDoc.id, ...myOrderIds];
+                    setMyOrderIds(updatedMyOrders);
+                    try { localStorage.setItem('am_ecommerce_my_orders', JSON.stringify(updatedMyOrders)); } catch {}
+
+                    setLastCreatedOrder({ id: orderDoc.id, total: totalOrder, paymentMethod: mpPaymentMethod });
+                    setCart([]);
+                    setCheckoutStep('success');
+                    toast.success("Pagamento confirmado! Sua compra foi enviada para a loja.");
+                } catch (err) {
+                    toast.error("Erro ao processar pedido online: " + err.message);
+                }
+                setProcessingOrder(false);
+            };
+
+            if (loading) {
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center bg-[#050B14] text-white">
+                        <div className="w-12 h-12 rounded-full border-t-2 border-gold-accent animate-spin mb-4"></div>
+                        <p className="text-xs uppercase tracking-widest text-text-muted font-bold">Carregando Loja Online...</p>
+                    </div>
+                );
+            }
+
+            // BLOQUEIO AUTOMÁTICO CASO O PROGRAMADOR/ADMIN NÃO TENHA LIBERADO O E-COMMERCE
+            if (!isEcommerceLiberated) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center bg-[#050B14] p-4 text-center">
+                        <div className="glass-panel p-8 sm:p-10 max-w-md w-full border border-gold-accent/30">
+                            <div className="w-20 h-20 rounded-2xl bg-gold-accent/10 border border-gold-accent/30 text-gold-accent flex items-center justify-center mx-auto mb-5">
+                                <i className="ph-fill ph-storefront text-4xl"></i>
+                            </div>
+                            <h1 className="text-2xl font-bold text-white">{settings?.storeTitle || settings?.name || 'Loja Online A&M'}</h1>
+                            <p className="text-sm text-text-muted mt-3 leading-relaxed">
+                                Nossa vitrine online está temporariamente fechada para manutenção ou atualização de estoque pelo administrador.
+                            </p>
+                            {settings?.storeWhatsapp && (
+                                <p className="text-xs text-gold-accent font-semibold mt-4">
+                                    Atendimento: {settings.storeWhatsapp}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            const customerOrdersList = orders.filter(o => myOrderIds.includes(o.id)).sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+
+            return (
+                <div className="min-h-screen flex flex-col bg-[#050B14] text-text-light">
+                    {/* Topo da Loja Online */}
+                    <header className="sticky top-0 z-30 bg-[#050B14]/90 backdrop-blur-md border-b border-panel-border px-4 sm:px-8 h-20 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-12 h-12 rounded-xl bg-[#0A1222] border border-gold-accent/40 flex items-center justify-center overflow-hidden shrink-0">
+                                {settings?.logoUrl ? (
+                                    <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
+                                ) : (
+                                    <i className="ph-fill ph-storefront text-2xl text-gold-accent"></i>
+                                )}
+                            </div>
+                            <div className="min-w-0">
+                                <h1 className="text-base sm:text-lg font-extrabold text-white truncate">
+                                    {settings?.storeTitle || settings?.name || 'Loja Online A&M'}
+                                </h1>
+                                <span className="inline-flex items-center gap-1 text-[11px] text-mp-blue font-semibold">
+                                    <i className="ph-fill ph-shield-check"></i> Pagamento Seguro via Mercado Pago
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Barra de Busca Desktop */}
+                        <div className="hidden md:flex flex-1 max-w-md relative">
+                            <i className="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-text-muted text-lg"></i>
+                            <input 
+                                type="text" 
+                                value={searchQuery} 
+                                onChange={e => setSearchQuery(e.target.value)} 
+                                placeholder="Buscar produtos ou categorias na loja..." 
+                                className="input-dark rounded-full pl-11 pr-4 py-2.5 w-full text-sm" 
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-2.5">
+                            <button 
+                                onClick={() => setMyOrdersOpen(true)} 
+                                className="px-3.5 py-2.5 rounded-xl bg-[#0A1222] hover:bg-panel-border border border-panel-border text-xs font-bold text-text-light flex items-center gap-2"
+                            >
+                                <i className="ph ph-package text-base text-gold-accent"></i>
+                                <span className="hidden sm:inline">Meus Pedidos</span>
+                                {customerOrdersList.length > 0 && (
+                                    <span className="px-1.5 py-0.2 rounded-full bg-gold-accent text-[#050B14] text-[10px] font-extrabold">{customerOrdersList.length}</span>
+                                )}
+                            </button>
+
+                            <button 
+                                onClick={() => { setCheckoutStep('cart'); setCartOpen(true); }} 
+                                className="px-4 py-2.5 rounded-xl bg-gold-accent hover:bg-amber-500 text-[#050B14] font-extrabold text-xs flex items-center gap-2 shadow-lg"
+                            >
+                                <i className="ph-fill ph-shopping-bag text-lg"></i>
+                                <span>Sacola ({cart.reduce((a, b) => a + b.qty, 0)})</span>
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Busca Mobile */}
+                    <div className="md:hidden px-4 pt-3">
+                        <div className="relative">
+                            <i className="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"></i>
+                            <input 
+                                type="text" 
+                                value={searchQuery} 
+                                onChange={e => setSearchQuery(e.target.value)} 
+                                placeholder="Buscar produtos na loja..." 
+                                className="input-dark rounded-xl pl-10 pr-4 py-3 w-full text-sm" 
+                            />
+                        </div>
+                    </div>
+
+                    <main className="flex-1 max-w-[1360px] w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+                        {/* Banner Principal */}
+                        <section className="rounded-2xl bg-gradient-to-r from-[#0C1E3B] via-[#0A1222] to-[#1A160B] border border-gold-accent/30 p-6 sm:p-10 relative overflow-hidden">
+                            <div className="max-w-2xl space-y-3 relative z-10">
+                                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-gold-accent bg-gold-accent/15 px-3 py-1 rounded-full">
+                                    <i className="ph-fill ph-lightning"></i> Estoque Sincronizado em Tempo Real
+                                </span>
+                                <h2 className="text-2xl sm:text-4xl font-extrabold text-white leading-tight">
+                                    {settings?.storeTitle || settings?.name || 'Bem-vindo à nossa Loja Online'}
+                                </h2>
+                                <p className="text-sm sm:text-base text-text-muted">
+                                    {settings?.storeBannerText || 'Escolha seus produtos por categoria e finalize com PIX ou Cartão pelo Mercado Pago.'}
+                                </p>
+                            </div>
+                        </section>
+
+                        {/* Barra de Categorias Separadas Automaticamente */}
+                        <section className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted flex items-center gap-2">
+                                    <i className="ph ph-folders text-gold-accent text-base"></i> Categorias da Loja
+                                </h3>
+                                <span className="text-xs text-text-muted">{filteredProducts.length} produto(s)</span>
+                            </div>
+                            <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                                {categories.map(cat => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => setSelectedCategory(cat)}
+                                        className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap border transition-all ${
+                                            selectedCategory === cat
+                                                ? 'bg-gold-accent text-[#050B14] border-gold-accent shadow-lg shadow-gold-accent/20'
+                                                : 'bg-[#0A1222] text-text-light border-panel-border hover:border-gold-accent/50'
+                                        }`}
+                                    >
+                                        {cat === 'TODAS' ? 'Todas as Categorias' : cat}
+                                    </button>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* Grade de Produtos */}
+                        {filteredProducts.length === 0 ? (
+                            <div className="glass-panel p-14 text-center text-text-muted">
+                                <i className="ph ph-package text-5xl mb-3 opacity-50"></i>
+                                <p className="text-base font-bold text-white">Nenhum produto encontrado nesta categoria</p>
+                                <p className="text-xs mt-1">Tente selecionar outra categoria acima.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                                {filteredProducts.map(prod => {
+                                    const outOfStock = Number(prod.stock) <= 0;
+                                    const inCartQty = cart.find(i => i.id === prod.id)?.qty || 0;
+                                    return (
+                                        <article key={prod.id} className="glass-panel overflow-hidden flex flex-col justify-between group hover:border-gold-accent/50 transition-all">
+                                            <div>
+                                                <div className="h-48 bg-[#050B14] relative flex items-center justify-center overflow-hidden border-b border-panel-border">
+                                                    {prod.imageUrl ? (
+                                                        <img src={prod.imageUrl} alt={prod.name} className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform" />
+                                                    ) : (
+                                                        <i className="ph ph-package text-5xl text-panel-border"></i>
+                                                    )}
+                                                    <span className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-[#0A1222]/90 border border-panel-border text-[10px] font-bold text-gold-accent uppercase">
+                                                        {prod.category || 'Geral'}
+                                                    </span>
+                                                    <span className={`absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded text-[10px] font-bold ${outOfStock ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                                                        {outOfStock ? 'Esgotado' : `${prod.stock} em estoque`}
+                                                    </span>
+                                                </div>
+                                                <div className="p-4">
+                                                    <h4 className="text-sm font-bold text-white line-clamp-2 min-h-[40px]">{prod.name}</h4>
+                                                    <p className="text-2xl font-extrabold text-gold-accent mt-2">{formatMoney(prod.price)}</p>
+                                                </div>
+                                            </div>
+                                            <div className="p-4 pt-0">
+                                                <button
+                                                    type="button"
+                                                    disabled={outOfStock}
+                                                    onClick={() => addToCart(prod)}
+                                                    className={`w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+                                                        outOfStock
+                                                            ? 'bg-panel-border text-text-muted cursor-not-allowed'
+                                                            : 'bg-primary-blue hover:bg-blue-600 text-white shadow-lg shadow-primary-blue/20'
+                                                    }`}
+                                                >
+                                                    <i className="ph-bold ph-shopping-cart text-base"></i>
+                                                    {outOfStock ? 'Produto Esgotado' : inCartQty > 0 ? `Na Sacola (${inCartQty}) • +1` : 'Adicionar à Sacola'}
+                                                </button>
+                                            </div>
+                                        </article>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </main>
+
+                    {/* Rodapé da Loja */}
+                    <footer className="border-t border-panel-border bg-[#0A1222] py-6 px-4 sm:px-8 text-center text-xs text-text-muted">
+                        <p className="font-bold text-white">{settings?.storeTitle || settings?.name || 'Loja Online A&M'}</p>
+                        {settings?.address && <p className="mt-1">{settings.address}</p>}
+                        {settings?.storeWhatsapp && <p className="mt-1 text-gold-accent">Atendimento WhatsApp: {settings.storeWhatsapp}</p>}
+                    </footer>
+
+                    {/* MODAL DE CHECKOUT E PAGAMENTO MERCADO PAGO */}
+                    {cartOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm fade-in">
+                            <div className="glass-panel w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden border border-[#2A3B5C]">
+                                <div className="p-5 border-b border-panel-border flex justify-between items-center bg-[#050B14]">
+                                    <div className="flex items-center gap-2.5">
+                                        <i className="ph-fill ph-shopping-bag text-2xl text-gold-accent"></i>
+                                        <div>
+                                            <h3 className="text-base font-bold text-white">
+                                                {checkoutStep === 'cart' ? 'Sua Sacola de Compras' : checkoutStep === 'customer' ? 'Dados de Entrega' : checkoutStep === 'mp_payment' ? 'Pagamento Seguro Mercado Pago' : 'Pedido Confirmado!'}
+                                            </h3>
+                                            <p className="text-xs text-text-muted">Sincronizado em tempo real com o Caixa A&M</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setCartOpen(false)} className="text-text-muted hover:text-white p-1.5">
+                                        <i className="ph ph-x text-xl"></i>
+                                    </button>
+                                </div>
+
+                                <div className="p-5 sm:p-6 overflow-y-auto space-y-5">
+                                    {/* ETAPA 1: REVISÃO DA SACOLA */}
+                                    {checkoutStep === 'cart' && (
+                                        <>
+                                            {cart.length === 0 ? (
+                                                <div className="py-12 text-center text-text-muted">
+                                                    <i className="ph ph-shopping-cart text-5xl mb-3 opacity-40"></i>
+                                                    <p className="text-sm">Sua sacola está vazia.</p>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                                                        {cart.map(item => (
+                                                            <div key={item.id} className="flex items-center justify-between gap-3 bg-[#050B14] border border-panel-border p-3 rounded-xl">
+                                                                <div className="min-w-0 flex-1">
+                                                                    <p className="text-sm font-bold text-white truncate">{item.name}</p>
+                                                                    <p className="text-xs text-gold-accent font-semibold">{formatMoney(item.price)} un.</p>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <button type="button" onClick={() => updateCartQty(item.id, -1)} className="w-7 h-7 rounded-lg bg-[#0A1222] border border-panel-border text-white">-</button>
+                                                                    <span className="w-6 text-center text-xs font-bold text-white">{item.qty}</span>
+                                                                    <button type="button" onClick={() => updateCartQty(item.id, 1)} className="w-7 h-7 rounded-lg bg-[#0A1222] border border-panel-border text-white">+</button>
+                                                                </div>
+                                                                <strong className="text-sm font-bold text-white w-20 text-right">{formatMoney(item.price * item.qty)}</strong>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                    <div className="bg-[#050B14] border border-panel-border rounded-xl p-4 space-y-2 text-xs">
+                                                        <div className="flex justify-between">
+                                                            <span className="text-text-muted">Subtotal dos Produtos</span>
+                                                            <span className="text-white font-bold">{formatMoney(subtotal)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-text-muted">Taxa de Entrega</span>
+                                                            <span className="text-white font-bold">{shippingCost > 0 ? formatMoney(shippingCost) : 'Grátis'}</span>
+                                                        </div>
+                                                        <div className="border-t border-panel-border pt-2 flex justify-between items-center text-sm">
+                                                            <span className="font-bold text-white">Total</span>
+                                                            <strong className="text-xl font-extrabold text-gold-accent">{formatMoney(totalOrder)}</strong>
+                                                        </div>
+                                                    </div>
+
+                                                    <button type="button" onClick={() => setCheckoutStep('customer')} className="w-full py-4 rounded-xl bg-primary-blue hover:bg-blue-600 text-white font-bold text-sm flex items-center justify-center gap-2">
+                                                        Continuar para Identificação e Entrega <i className="ph-bold ph-arrow-right"></i>
+                                                    </button>
+                                                </>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {/* ETAPA 2: DADOS DO CLIENTE E ENTREGA */}
+                                    {checkoutStep === 'customer' && (
+                                        <form onSubmit={handleProceedToMercadoPago} className="space-y-4">
+                                            <div className="grid grid-cols-2 gap-2.5">
+                                                <button type="button" onClick={() => setDeliveryType('delivery')} className={`py-3 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 ${deliveryType === 'delivery' ? 'bg-primary-blue border-primary-blue text-white' : 'bg-[#050B14] border-panel-border text-text-muted'}`}>
+                                                    <i className="ph ph-truck text-base"></i> Receber em Casa
+                                                </button>
+                                                {settings?.allowPickup !== false && (
+                                                    <button type="button" onClick={() => setDeliveryType('pickup')} className={`py-3 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 ${deliveryType === 'pickup' ? 'bg-primary-blue border-primary-blue text-white' : 'bg-[#050B14] border-panel-border text-text-muted'}`}>
+                                                        <i className="ph ph-storefront text-base"></i> Retirar na Loja
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div className="sm:col-span-2">
+                                                    <label className="text-xs text-text-muted uppercase font-bold block mb-1">Nome Completo</label>
+                                                    <input type="text" required value={customer.name} onChange={e => setCustomer({...customer, name: e.target.value})} className="input-dark rounded-xl p-3 w-full text-sm" placeholder="Seu nome" />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-text-muted uppercase font-bold block mb-1">WhatsApp / Telefone</label>
+                                                    <input type="tel" required value={customer.phone} onChange={e => setCustomer({...customer, phone: e.target.value})} className="input-dark rounded-xl p-3 w-full text-sm" placeholder="(00) 90000-0000" />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-text-muted uppercase font-bold block mb-1">E-mail</label>
+                                                    <input type="email" required value={customer.email} onChange={e => setCustomer({...customer, email: e.target.value})} className="input-dark rounded-xl p-3 w-full text-sm" placeholder="cliente@email.com" />
+                                                </div>
+                                            </div>
+
+                                            {deliveryType === 'delivery' && (
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-panel-border">
+                                                    <div>
+                                                        <label className="text-xs text-text-muted uppercase font-bold block mb-1">CEP</label>
+                                                        <input type="text" required value={customer.cep} onChange={e => setCustomer({...customer, cep: e.target.value})} onBlur={e => lookupCEP(e.target.value)} className="input-dark rounded-xl p-3 w-full text-sm" placeholder="00000-000" />
+                                                    </div>
+                                                    <div className="sm:col-span-2">
+                                                        <label className="text-xs text-text-muted uppercase font-bold block mb-1">Rua / Avenida</label>
+                                                        <input type="text" required value={customer.street} onChange={e => setCustomer({...customer, street: e.target.value})} className="input-dark rounded-xl p-3 w-full text-sm" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs text-text-muted uppercase font-bold block mb-1">Número</label>
+                                                        <input type="text" required value={customer.number} onChange={e => setCustomer({...customer, number: e.target.value})} className="input-dark rounded-xl p-3 w-full text-sm" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs text-text-muted uppercase font-bold block mb-1">Bairro</label>
+                                                        <input type="text" required value={customer.neighborhood} onChange={e => setCustomer({...customer, neighborhood: e.target.value})} className="input-dark rounded-xl p-3 w-full text-sm" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs text-text-muted uppercase font-bold block mb-1">Cidade / UF</label>
+                                                        <input type="text" required value={customer.city} onChange={e => setCustomer({...customer, city: e.target.value})} className="input-dark rounded-xl p-3 w-full text-sm" />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="flex justify-between gap-3 pt-3">
+                                                <button type="button" onClick={() => setCheckoutStep('cart')} className="px-4 py-3 rounded-xl border border-panel-border text-xs font-bold text-text-light">Voltar</button>
+                                                <button type="submit" disabled={processingOrder} className="flex-1 py-3.5 rounded-xl bg-mp-blue hover:bg-sky-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg">
+                                                    {processingOrder ? 'Conectando ao Mercado Pago...' : 'Ir para Pagamento Mercado Pago'}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    )}
+
+                                    {/* ETAPA 3: CHECKOUT MERCADO PAGO */}
+                                    {checkoutStep === 'mp_payment' && (
+                                        <div className="space-y-5">
+                                            <div className="bg-[#050B14] border border-mp-blue/40 rounded-xl p-4 flex items-center justify-between">
+                                                <div>
+                                                    <span className="text-[10px] font-bold uppercase text-mp-blue block">CONTA CONECTADA MERCADO PAGO</span>
+                                                    <p className="text-xs text-text-muted mt-0.5">Chave Pública ativa: {(settings.mpPublicKey || '').slice(0, 16)}...</p>
+                                                </div>
+                                                <strong className="text-xl font-extrabold text-gold-accent">{formatMoney(totalOrder)}</strong>
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-bold text-text-muted uppercase block mb-2">Escolha como pagar no Mercado Pago</label>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    {['PIX', 'Cartão de Crédito'].map(m => (
+                                                        <button
+                                                            key={m}
+                                                            type="button"
+                                                            onClick={() => setMpPaymentMethod(m)}
+                                                            className={`p-3.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 ${
+                                                                mpPaymentMethod === m ? 'bg-mp-blue/20 border-mp-blue text-white' : 'bg-[#050B14] border-panel-border text-text-muted'
+                                                            }`}
+                                                        >
+                                                            <i className={`ph-fill ${m === 'PIX' ? 'ph-qr-code' : 'ph-credit-card'} text-lg text-mp-blue`}></i>
+                                                            {m}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {mpPreferenceUrl && (
+                                                <a
+                                                    href={mpPreferenceUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="w-full py-3 rounded-xl bg-[#050B14] border border-mp-blue text-mp-blue hover:bg-mp-blue/10 text-xs font-bold flex items-center justify-center gap-2"
+                                                >
+                                                    <i className="ph-bold ph-arrow-square-out"></i> Abrir Ambiente Externo do Mercado Pago (Opcional)
+                                                </a>
+                                            )}
+
+                                            <div className="flex justify-between gap-3 pt-2">
+                                                <button type="button" onClick={() => setCheckoutStep('customer')} className="px-4 py-3 rounded-xl border border-panel-border text-xs font-bold text-text-light">Voltar</button>
+                                                <button
+                                                    type="button"
+                                                    disabled={processingOrder}
+                                                    onClick={handleConfirmOnlineSale}
+                                                    className="flex-1 py-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg"
+                                                >
+                                                    <i className="ph-bold ph-check-circle text-lg"></i>
+                                                    {processingOrder ? 'Registrando Venda Online no Caixa...' : `Confirmar Pagamento (${formatMoney(totalOrder)})`}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* ETAPA 4: CONFIRMAÇÃO DE COMPRA */}
+                                    {checkoutStep === 'success' && lastCreatedOrder && (
+                                        <div className="py-6 text-center space-y-4">
+                                            <div className="w-16 h-16 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mx-auto">
+                                                <i className="ph-fill ph-check-circle text-4xl"></i>
+                                            </div>
+                                            <h4 className="text-xl font-extrabold text-white">Compra Online Confirmada!</h4>
+                                            <p className="text-xs text-text-muted max-w-md mx-auto">
+                                                Seu pedido <strong className="text-gold-accent">#{String(lastCreatedOrder.id).slice(0, 6).toUpperCase()}</strong> no valor de <strong className="text-white">{formatMoney(lastCreatedOrder.total)}</strong> foi registrado diretamente no Caixa da loja via Mercado Pago.
+                                            </p>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setCartOpen(false); setMyOrdersOpen(true); }}
+                                                className="px-6 py-3 rounded-xl bg-primary-blue text-white text-xs font-bold"
+                                            >
+                                                Acompanhar Meu Pedido
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODAL DE ACOMPANHAMENTO DE PEDIDOS DO CLIENTE */}
+                    {myOrdersOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm fade-in">
+                            <div className="glass-panel w-full max-w-lg max-h-[88vh] flex flex-col overflow-hidden border border-[#2A3B5C]">
+                                <div className="p-5 border-b border-panel-border flex justify-between items-center bg-[#050B14]">
+                                    <h3 className="text-base font-bold text-white">Meus Pedidos Online</h3>
+                                    <button onClick={() => setMyOrdersOpen(false)} className="text-text-muted hover:text-white p-1.5">
+                                        <i className="ph ph-x text-xl"></i>
+                                    </button>
+                                </div>
+                                <div className="p-5 overflow-y-auto space-y-3">
+                                    {customerOrdersList.length === 0 ? (
+                                        <p className="text-xs text-text-muted text-center py-8">Você ainda não realizou pedidos neste dispositivo.</p>
+                                    ) : (
+                                        customerOrdersList.map(ord => (
+                                            <div key={ord.id} className="p-4 rounded-xl bg-[#050B14] border border-panel-border space-y-1.5 text-xs">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="font-mono font-bold text-gold-accent">PEDIDO #{String(ord.id).slice(0, 6).toUpperCase()}</span>
+                                                    <span className="px-2.5 py-0.5 rounded-full bg-primary-blue/20 text-blue-400 font-bold">
+                                                        {ord.fulfillmentStatus === 'delivered' ? 'Entregue / Concluído' : ord.fulfillmentStatus === 'dispatched' ? 'Saiu para Entrega' : 'Em Preparação'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-white font-medium">{(ord.items || []).map(i => `${i.qty}x ${i.name}`).join(', ')}</p>
+                                                <div className="flex justify-between items-center text-text-muted pt-1">
+                                                    <span>{new Date(ord.createdAt || ord.date).toLocaleString()}</span>
+                                                    <strong className="text-sm text-white">{formatMoney(ord.total)}</strong>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const Root = () => (
+            <ToastProvider>
+                <EcommerceStore />
+            </ToastProvider>
+        );
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
+    </script>
+</body>
+</html>
